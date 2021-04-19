@@ -1,10 +1,10 @@
 import math
 from random import randint, random
+from abc import ABC, abstractmethod
 
 import tkinter as tk
 
 from gamelib import Sprite, GameApp, Text, KeyboardHandler
-from abc import ABC, abstractmethod
 from consts import *
 from elements import Ship, Bullet, Enemy
 from utils import random_edge_position, normalize_vector, direction_to_dxdy, vector_len, distance
@@ -20,7 +20,7 @@ class SpaceGame(GameApp):
         self.score = StatusWithText(self, 100, 20, 'Score: %d', 0)
 
         self.bomb_wait = 0
-        self.bomb_power = StatusWithText(self, 700, 20, 'Power: %d', 100)
+        self.bomb_power = StatusWithText(self, 700, 20, 'Power: %d%%', BOMB_FULL_POWER)
 
         self.elements.append(self.ship)
 
@@ -54,12 +54,15 @@ class SpaceGame(GameApp):
         if self.bomb_power.value == BOMB_FULL_POWER:
             self.bomb_power.value = 0
             self.circle_bomb()
-            self.after(200, lambda: self.canvas.delete(self.bomb_canvas_id))
             self.enemy_destroying()
 
 
 
     def enemy_destroying(self):
+        self.after(200, lambda: self.canvas.delete(self.bomb_canvas_id))
+        self.after(200, lambda: self.canvas.delete(self.special_canvas_id))
+
+
         for e in self.enemies:
             if self.ship.distance_to(e) <= BOMB_RADIUS:
                 e.to_be_deleted = True
@@ -72,6 +75,13 @@ class SpaceGame(GameApp):
             self.ship.y + BOMB_RADIUS
         )
 
+    def special_canvas(self):
+        self.special_canvas_id = self.canvas.create_oval(
+            100,100,100,100, fill= "Blue"
+        )
+    
+    
+
     def update_score(self):
         self.score_wait += 1
         if self.score_wait >= SCORE_WAIT:
@@ -83,34 +93,6 @@ class SpaceGame(GameApp):
         if (self.bomb_wait >= BOMB_WAIT) and (self.bomb_power != BOMB_FULL_POWER):
             self.bomb_power.value += 1
             self.bomb_wait = 0
-
-    def create_enemy_star(self):
-        enemies = []
-
-        x = randint(100, CANVAS_WIDTH - 100)
-        y = randint(100, CANVAS_HEIGHT - 100)
-
-        while vector_len(x - self.ship.x, y - self.ship.y) < 200:
-            x = randint(100, CANVAS_WIDTH - 100)
-            y = randint(100, CANVAS_HEIGHT - 100)
-
-        for d in range(18):
-            dx, dy = direction_to_dxdy(d * 20)
-            enemy = Enemy(self, x, y, dx * ENEMY_BASE_SPEED,
-                          dy * ENEMY_BASE_SPEED)
-            enemies.append(enemy)
-
-        return enemies
-
-    def create_enemy_from_edges(self):
-        x, y = random_edge_position()
-        vx, vy = normalize_vector(self.ship.x - x, self.ship.y - y)
-
-        vx *= ENEMY_BASE_SPEED
-        vy *= ENEMY_BASE_SPEED
-
-        enemy = Enemy(self, x, y, vx, vy)
-        return [enemy]
 
     def create_enemies(self):
         p = random()
@@ -141,7 +123,7 @@ class SpaceGame(GameApp):
 
     def process_collisions(self):
         self.process_bullet_enemy_collisions()
-        # self.process_ship_enemy_collision()
+        self.process_ship_enemy_collision()
 
     def update_and_filter_deleted(self, elements):
         new_list = []
@@ -230,6 +212,8 @@ class ShipMovementKeyPressedHandler(GameKeyboardHandler):
             self.ship.start_turn('RIGHT')
         elif event.char == ' ':
             self.ship.fire()
+        elif event.char.upper() == 'Z':
+            self.bomb()
 
 
 class ShipMovementKeyReleasedHandler(GameKeyboardHandler):
