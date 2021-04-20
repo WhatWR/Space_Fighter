@@ -20,7 +20,8 @@ class SpaceGame(GameApp):
         self.score = StatusWithText(self, 100, 20, 'Score: %d', 0)
 
         self.bomb_wait = 0
-        self.bomb_power = StatusWithText(self, 700, 20, 'Power: %d%%', BOMB_FULL_POWER)
+        self.bomb_power = StatusWithText(
+            self, 700, 20, 'Power: %d%%', BOMB_FULL_POWER)
 
         self.elements.append(self.ship)
 
@@ -54,14 +55,12 @@ class SpaceGame(GameApp):
         if self.bomb_power.value == BOMB_FULL_POWER:
             self.bomb_power.value = 0
             self.circle_bomb()
+            self.special_canvas()
             self.enemy_destroying()
-
-
 
     def enemy_destroying(self):
         self.after(200, lambda: self.canvas.delete(self.bomb_canvas_id))
         self.after(200, lambda: self.canvas.delete(self.special_canvas_id))
-
 
         for e in self.enemies:
             if self.ship.distance_to(e) <= BOMB_RADIUS:
@@ -76,11 +75,13 @@ class SpaceGame(GameApp):
         )
 
     def special_canvas(self):
-        self.special_canvas_id = self.canvas.create_oval(
-            100,100,100,100, fill= "Blue"
+        self.special_canvas_id = self.canvas.create_rectangle(
+            self.ship.x - SPECIAL_CANVAS_RADIUS,
+            self.ship.y - SPECIAL_CANVAS_RADIUS,
+            self.ship.x + SPECIAL_CANVAS_RADIUS,
+            self.ship.y + SPECIAL_CANVAS_RADIUS,outline = "blue"
+            
         )
-    
-    
 
     def update_score(self):
         self.score_wait += 1
@@ -90,7 +91,7 @@ class SpaceGame(GameApp):
 
     def update_bomb_power(self):
         self.bomb_wait += 1
-        if (self.bomb_wait >= BOMB_WAIT) and (self.bomb_power != BOMB_FULL_POWER):
+        if (self.bomb_wait >= BOMB_WAIT) and (self.bomb_power.value != BOMB_FULL_POWER):
             self.bomb_power.value += 1
             self.bomb_wait = 0
 
